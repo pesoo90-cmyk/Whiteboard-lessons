@@ -274,7 +274,7 @@ if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){xmsg('ال
 try{await Promise.all([document.fonts.load('700 40px Caveat'),document.fonts.load('800 30px Cairo')])}catch(e){}
 var c=document.createElement('canvas');c.width=W;c.height=H;
 var stream=c.captureStream(30),mic=null;
-if($('mic').checked&&!audioBuf){try{mic=await navigator.mediaDevices.getUserMedia({audio:true});mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح هنا ('+(e&&e.name||'خطأ')+'). هيتسجّل الفيديو من غير صوت.')}}
+if($('mic').checked&&!audioBuf){try{xmsg('بيطلب الميكروفون... اضغطي سماح');mic=await Promise.race([navigator.mediaDevices.getUserMedia({audio:true}),new Promise(function(_,rj){setTimeout(function(){rj({name:'Timeout'})},6000)})]);mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح هنا ('+(e&&e.name||'خطأ')+'). هيتسجّل الفيديو من غير صوت.')}}
 var actx=null,asrc=null;
 if(audioBuf){try{actx=new (window.AudioContext||window.webkitAudioContext)();var dest=actx.createMediaStreamDestination();asrc=actx.createBufferSource();asrc.buffer=audioBuf;asrc.connect(dest);dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)});tl.total=Math.max(tl.total,audioBuf.duration*1000+600)}catch(e){actx=null;asrc=null;xmsg('الصوت مش هيتدمج في المتصفح ده.')}}
 var mt=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].filter(function(v){return MediaRecorder.isTypeSupported(v)})[0]||'';
@@ -406,7 +406,7 @@ async function recOne(list,gap,W,H,useAudio,label){
 var tl=timeline(gap,list),c=document.createElement('canvas');c.width=W;c.height=H;
 var stream=c.captureStream(30),actx=null,asrc=null,mic=null;
 if(useAudio&&audioBuf){try{actx=new (window.AudioContext||window.webkitAudioContext)();var dest=actx.createMediaStreamDestination();asrc=actx.createBufferSource();asrc.buffer=audioBuf;asrc.connect(dest);dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)});tl.total=Math.max(tl.total,audioBuf.duration*1000+600)}catch(e){actx=null;asrc=null}}
-else if(useAudio&&$('mic').checked){try{mic=await navigator.mediaDevices.getUserMedia({audio:true});mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح ('+(e&&e.name||'خطأ')+'). هيتسجّل من غير صوت.')}}
+else if(useAudio&&$('mic').checked){try{xmsg('بيطلب الميكروفون... اضغطي سماح');mic=await Promise.race([navigator.mediaDevices.getUserMedia({audio:true}),new Promise(function(_,rj){setTimeout(function(){rj({name:'Timeout'})},6000)})]);mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح ('+(e&&e.name||'خطأ')+'). هيتسجّل من غير صوت.')}}
 var mt=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].filter(function(v){return MediaRecorder.isTypeSupported(v)})[0]||'';
 var rec=new MediaRecorder(stream,mt?{mimeType:mt}:{}),chunks=[],ext=/mp4/.test(mt)?'mp4':'webm';
 return new Promise(function(resolve){
@@ -541,7 +541,7 @@ if(useNar||musBuf){try{actx=new (window.AudioContext||window.webkitAudioContext)
 if(useNar){ns=actx.createBufferSource();ns.buffer=audioBuf;ns.connect(dest);tl.total=Math.max(tl.total,off*1000+audioBuf.duration*1000+600)}
 if(musBuf){ms=actx.createBufferSource();ms.buffer=musBuf;ms.loop=true;var gn=actx.createGain();gn.gain.value=(+$('mvol').value)/100;ms.connect(gn);gn.connect(dest)}
 dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){actx=null;ns=null;ms=null;xmsg('الصوت مش هيتدمج في المتصفح ده.')}}
-else if(useAudio&&$('mic').checked){try{mic=await navigator.mediaDevices.getUserMedia({audio:true});mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح ('+(e&&e.name||'خطأ')+'). هيتسجّل من غير صوت.')}}
+else if(useAudio&&$('mic').checked){try{xmsg('بيطلب الميكروفون... اضغطي سماح');mic=await Promise.race([navigator.mediaDevices.getUserMedia({audio:true}),new Promise(function(_,rj){setTimeout(function(){rj({name:'Timeout'})},6000)})]);mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){xmsg('الميكروفون مش متاح ('+(e&&e.name||'خطأ')+'). هيتسجّل من غير صوت.')}}
 var mt=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].filter(function(v){return MediaRecorder.isTypeSupported(v)})[0]||'';
 var rec=new MediaRecorder(stream,mt?{mimeType:mt}:{}),chunks=[],ext=/mp4/.test(mt)?'mp4':'webm';
 return new Promise(function(resolve){
