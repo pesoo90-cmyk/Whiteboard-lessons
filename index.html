@@ -73,7 +73,7 @@ li span{flex:1;min-width:0;overflow-wrap:anywhere}
 <h1>صانع دروس السبورة</h1>
 <button type="button" id="install" style="display:none;margin-top:8px">تثبيت كبرنامج على الجهاز</button>
 
-<p class="sub">اكتب الدرس بالشكل البسيط ده، واضغط “شغّل” يتكتب على سبورة.</p>
+<p class="sub">اكتب الدرس بالشكل البسيط ده، واضغط “شغّل” يتكتب على سبورة. <small>(إصدار 3)</small></p>
 
 <div class="card">
 <h2>الدرس</h2>
@@ -660,6 +660,44 @@ var _ip=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_ip=e;var b=document.getElementById('install');if(b)b.style.display='inline-block'});
 document.getElementById('install').onclick=async function(){if(!_ip)return;_ip.prompt();try{await _ip.userChoice}catch(e){}_ip=null;this.style.display='none'};
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(function(){})}
+
+function startRec(stream,types){
+for(var i=0;i<types.length;i++){var t=types[i];
+if(t&&!MediaRecorder.isTypeSupported(t))continue;
+try{var chunks=[],r=new MediaRecorder(stream,t?{mimeType:t}:{});r.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};r.start(500);return {r:r,t:t,chunks:chunks}}catch(e){}}
+return null}
+async function recOne(list,gap,W,H,useAudio,label){
+var tl=timeline(gap,list),c=document.createElement('canvas');c.width=W;c.height=H;
+var stream=c.captureStream(30),actx=null,mic=null,ns=null,ms=null,off=$('intro').checked?2.5:0,useNar=useAudio&&audioBuf;
+if(useNar||musBuf){try{actx=new (window.AudioContext||window.webkitAudioContext)();var dest=actx.createMediaStreamDestination();
+if(useNar){ns=actx.createBufferSource();ns.buffer=audioBuf;ns.connect(dest);tl.total=Math.max(tl.total,off*1000+audioBuf.duration*1000+600)}
+if(musBuf){ms=actx.createBufferSource();ms.buffer=musBuf;ms.loop=true;var gn=actx.createGain();gn.gain.value=(+$('mvol').value)/100;ms.connect(gn);gn.connect(dest)}
+dest.stream.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){actx=null;ns=null;ms=null;xmsg('الصوت مش هيتدمج في المتصفح ده.')}}
+else if(useAudio&&$('mic').checked){try{xmsg('بيطلب الميكروفون... اضغطي سماح');mic=await Promise.race([navigator.mediaDevices.getUserMedia({audio:true}),new Promise(function(_,rj){setTimeout(function(){rj({name:'Timeout'})},6000)})]);mic.getAudioTracks().forEach(function(t){stream.addTrack(t)})}catch(e){mic=null;xmsg('الميكروفون مش متاح ('+(e&&e.name||'خطأ')+'). هيتسجّل من غير صوت.')}}
+var R=startRec(stream,['video/mp4;codecs=avc1,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','']);
+if(!R){if(mic)mic.getTracks().forEach(function(t){t.stop()});throw new Error('مقدرتش أبدأ التسجيل')}
+var ext=/mp4/.test(R.t)?'mp4':'webm';
+return new Promise(function(resolve){
+R.r.onstop=function(){if(mic)mic.getTracks().forEach(function(t){t.stop()});if(actx){try{actx.close()}catch(e){}}resolve({blob:new Blob(R.chunks,{type:R.t||'video/webm'}),ext:ext})};
+var t0=performance.now();
+if(actx){try{if(ns)ns.start(actx.currentTime+off);if(ms)ms.start()}catch(e){}}
+(function loop(){var t=performance.now()-t0;drawFrame(c,W,H,tl,Math.min(t,tl.total-1),gap);
+xmsg('بيتسجّل: '+label+' '+Math.round(Math.min(t/tl.total,1)*100)+'% (سيب الصفحة مفتوحة)');
+if(t<tl.total+400)requestAnimationFrame(loop);else R.r.stop()})()})}
+async function exportVideo(){
+if(recBusy)return;
+if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){xmsg('المتصفح ده مش بيدعم تسجيل الفيديو. جرّب كروم.');return}
+var vert=$('ratio').value==='v',W=vert?720:1280,H=vert?1280:720,gap=+$('speed').value;
+xmsg('بيجهّز التسجيل...');
+try{await Promise.all([document.fonts.load('700 40px Caveat'),document.fonts.load('800 30px Cairo')])}catch(e){}
+recBusy=true;$('xgo').disabled=true;$('vlist').innerHTML='';
+try{
+var per=$('mode').value==='each';
+var jobs=per?steps.map(function(s,k){return {list:[s],name:'خطوة '+(k+1)+': '+s.t}}):[{list:steps,name:'الدرس كله'}];
+for(var k=0;k<jobs.length;k++){var r=await recOne(jobs[k].list,gap,W,H,!per,jobs[k].name+' ('+(k+1)+'/'+jobs.length+')');addVideoRow(jobs[k].name,r,k)}
+xmsg('خلصت. اضغط حفظ على كل فيديو.')
+}catch(e){xmsg('حصل خطأ في التسجيل: '+(e&&e.name||'')+' '+(e&&e.message||''))}
+recBusy=false;$('xgo').disabled=false}
 </script>
 </body>
 </html>
